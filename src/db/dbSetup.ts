@@ -1,13 +1,14 @@
 import { initialTools } from './initialData/tools';
 import { initialAgents } from './initialData/agents';
+import { modelDb } from './modelDb';
 
 const DB_NAME = 'ai_agents_db';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbInstance: IDBDatabase | null = null;
 let dbInitPromise: Promise<IDBDatabase> | null = null;
 
-export type StoreNames = 'agents' | 'tools' | 'workflows' | 'model_configs';
+export type StoreNames = 'agents' | 'tools' | 'workflows' | 'model_configs' | 'memory_nodes' | 'memory_edges';
 
 export async function openDB(): Promise<IDBDatabase> {
   if (dbInstance) return dbInstance;
@@ -32,40 +33,57 @@ export async function openDB(): Promise<IDBDatabase> {
     request.onupgradeneeded = (event) => {
       console.log('Database upgrade needed');
       const db = request.result;
+      const oldVersion = event.oldVersion;
 
-      // Create stores if they don't exist
-      if (!db.objectStoreNames.contains('agents')) {
-        console.log('Creating agents store');
-        const agentStore = db.createObjectStore('agents', { keyPath: 'id' });
-        agentStore.createIndex('role', 'role');
-        agentStore.createIndex('parentId', 'parentId');
+      // Create base stores if they don't exist
+      if (oldVersion < 1) {
+        if (!db.objectStoreNames.contains('model_configs')) {
+          console.log('Creating model_configs store');
+          db.createObjectStore('model_configs', { keyPath: 'provider' });
+        }
 
-        // Add initial agents
-        initialAgents.forEach(agent => {
-          agentStore.add(agent);
-        });
+        if (!db.objectStoreNames.contains('tools')) {
+          console.log('Creating tools store');
+          const toolStore = db.createObjectStore('tools', { keyPath: 'id' });
+          
+          // Add initial tools
+          initialTools.forEach(tool => {
+            toolStore.add(tool);
+          });
+        }
+
+        if (!db.objectStoreNames.contains('agents')) {
+          console.log('Creating agents store');
+          const agentStore = db.createObjectStore('agents', { keyPath: 'id' });
+          agentStore.createIndex('role', 'role');
+          agentStore.createIndex('parentId', 'parentId');
+        }
+
+        if (!db.objectStoreNames.contains('workflows')) {
+          console.log('Creating workflows store');
+          const workflowStore = db.createObjectStore('workflows', { keyPath: 'id' });
+          workflowStore.createIndex('type', 'type');
+          workflowStore.createIndex('managerId', 'managerId');
+        }
       }
 
-      if (!db.objectStoreNames.contains('tools')) {
-        console.log('Creating tools store');
-        const toolStore = db.createObjectStore('tools', { keyPath: 'id' });
-        
-        // Add initial tools
-        initialTools.forEach(tool => {
-          toolStore.add(tool);
-        });
-      }
+      // Add memory stores in version 2
+      if (oldVersion < 2) {
+        if (!db.objectStoreNames.contains('memory_nodes')) {
+          console.log('Creating memory_nodes store');
+          const memoryNodeStore = db.createObjectStore('memory_nodes', { keyPath: 'id' });
+          memoryNodeStore.createIndex('agentId', 'agentId');
+          memoryNodeStore.createIndex('type', 'type');
+          memoryNodeStore.createIndex('timestamp', 'metadata.timestamp');
+        }
 
-      if (!db.objectStoreNames.contains('workflows')) {
-        console.log('Creating workflows store');
-        const workflowStore = db.createObjectStore('workflows', { keyPath: 'id' });
-        workflowStore.createIndex('type', 'type');
-        workflowStore.createIndex('managerId', 'managerId');
-      }
-
-      if (!db.objectStoreNames.contains('model_configs')) {
-        console.log('Creating model_configs store');
-        const modelConfigStore = db.createObjectStore('model_configs', { keyPath: 'provider' });
+        if (!db.objectStoreNames.contains('memory_edges')) {
+          console.log('Creating memory_edges store');
+          const memoryEdgeStore = db.createObjectStore('memory_edges', { keyPath: 'id' });
+          memoryEdgeStore.createIndex('sourceId', 'sourceId');
+          memoryEdgeStore.createIndex('targetId', 'targetId');
+          memoryEdgeStore.createIndex('type', 'type');
+        }
       }
     };
   });
@@ -82,36 +100,52 @@ export async function getStore(
   return transaction.objectStore(storeName);
 }
 
-export function handleStoreError(error: any): never {
+export function handleStoreError(error: Error | DOMException): never {
   console.error('Database operation failed:', error);
   throw new Error(`Database operation failed: ${error.message}`);
 }
 
 export async function initializeDB(): Promise<void> {
   const db = await openDB();
-  const transaction = db.transaction(['agents', 'tools', 'workflows', 'model_configs'], 'readwrite');
   
-  // Initialize stores if empty
-  const toolStore = transaction.objectStore('tools');
-  const agentStore = transaction.objectStore('agents');
+  // Initialize stores in correct order
+  const modelConfigStore = db.transaction('model_configs', 'readwrite').objectStore('model_configs');
+  const toolStore = db.transaction('tools', 'readwrite').objectStore('tools');
+  const agentStore = db.transaction('agents', 'readwrite').objectStore('agents');
   
-  const toolCount = await new Promise<number>((resolve) => {
-    const request = toolStore.count();
-    request.onsuccess = () => resolve(request.result);
-  });
-  
-  const agentCount = await new Promise<number>((resolve) => {
-    const request = agentStore.count();
-    request.onsuccess = () => resolve(request.result);
-  });
+  // Check if stores are empty
+  const [modelConfigCount, toolCount, agentCount] = await Promise.all([
+    new Promise<number>((resolve) => {
+      const request = modelConfigStore.count();
+      request.onsuccess = () => resolve(request.result);
+    }),
+    new Promise<number>((resolve) => {
+      const request = toolStore.count();
+      request.onsuccess = () => resolve(request.result);
+    }),
+    new Promise<number>((resolve) => {
+      const request = agentStore.count();
+      request.onsuccess = () => resolve(request.result);
+    })
+  ]);
+
+  // Initialize in order: models -> tools -> agents
+  if (modelConfigCount === 0) {
+    console.log('Initializing model configurations...');
+    await modelDb.initializeProviders();
+  }
   
   if (toolCount === 0) {
+    console.log('Initializing tools...');
     for (const tool of initialTools) {
       toolStore.add(tool);
     }
   }
   
-  if (agentCount === 0) {
+  // Only add agents after ensuring models are configured
+  const modelConfigs = await modelDb.getAllModelConfigs();
+  if (agentCount === 0 && modelConfigs.length > 0) {
+    console.log('Initializing agents...');
     for (const agent of initialAgents) {
       agentStore.add(agent);
     }

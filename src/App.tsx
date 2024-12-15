@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, Github, MessageCircle, Layout, Database, Menu, X } from 'lucide-react';
+import { Brain, Github, MessageCircle, Layout, Database, Menu, X, LucideIcon } from 'lucide-react';
 import { AgentList } from './components/AgentList';
 import { ToolList } from './components/ToolList';
 import { WorkflowBuilder } from './components/workflow/WorkflowBuilder';
@@ -10,14 +10,21 @@ import DatabaseBrowser from './components/DatabaseBrowser';
 import { Agent } from './types/agent';
 import { Tool } from './types/agent';
 import { Workflow } from './types/workflow';
-import { Conversation } from './types/chat';
+import { Conversation, UserParticipant, AgentParticipant } from './types/chat';
 import { agentDb } from './db/agentDb';
 import { toolDb } from './db/toolDb';
 import { workflowDb } from './db/workflowDb';
+import { modelDb } from './db/modelDb';
 import { ChatManager } from './services/chatManager';
 import { initializeDB } from './db/dbSetup';
 
 type View = 'chat' | 'dashboard' | 'database';
+
+interface NavButtonProps {
+  view: View;
+  icon: LucideIcon;
+  label: string;
+}
 
 export default function App() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -33,19 +40,38 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       try {
+        setIsLoading(true);
+        
+        // Initialize database first
         await initializeDB();
-        const loadedTools = await toolDb.getAllTools();
+        
+        // Initialize model configurations if needed
+        const modelConfigs = await modelDb.getAllModelConfigs();
+        if (modelConfigs.length === 0) {
+          await modelDb.initializeProviders();
+        }
+        
+        // Load all data after initialization
+        const [loadedAgents, loadedWorkflows, loadedTools] = await Promise.all([
+          agentDb.getAllAgents(),
+          workflowDb.getAllWorkflows(),
+          toolDb.getAllTools()
+        ]);
+        
+        setAgents(loadedAgents);
+        setWorkflows(loadedWorkflows);
         setTools(loadedTools);
       } catch (error) {
         console.error('Failed to initialize:', error);
+        setAgents([]);
+        setWorkflows([]);
+        setTools([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     
     init();
-  }, []);
-
-  useEffect(() => {
-    loadData();
   }, []);
 
   useEffect(() => {
@@ -60,24 +86,36 @@ export default function App() {
       const workers = agents.filter(a => selectedWorkflow.workerIds?.includes(a.id));
       
       const startChat = async () => {
+        const userParticipant: UserParticipant = {
+          id: 'user',
+          type: 'user',
+          name: 'You'
+        };
+
+        const managerParticipant: AgentParticipant | undefined = manager ? {
+          id: manager.id,
+          type: 'agent',
+          name: manager.name,
+          role: manager.role
+        } : undefined;
+
+        const workerParticipants: AgentParticipant[] = workers.map(worker => ({
+          id: worker.id,
+          type: 'agent',
+          name: worker.name,
+          role: worker.role
+        }));
+
+        const participants = [
+          userParticipant,
+          ...(managerParticipant ? [managerParticipant] : []),
+          ...workerParticipants
+        ];
+
         const newConversation = await chatManagerRef.current!.startConversation(
           selectedWorkflow.id,
           selectedWorkflow.name,
-          [
-            { id: 'user', type: 'user' as const, name: 'You' },
-            ...manager ? [{
-              id: manager.id,
-              type: 'agent' as const,
-              name: manager.name,
-              role: 'Manager'
-            }] : [],
-            ...workers.map(worker => ({
-              id: worker.id,
-              type: 'agent' as const,
-              name: worker.name,
-              role: 'Worker'
-            }))
-          ]
+          participants
         );
         setConversation(newConversation);
         setCurrentView('chat');
@@ -86,26 +124,6 @@ export default function App() {
       startChat();
     }
   }, [selectedWorkflow, agents]);
-
-  const loadData = async () => {
-    try {
-      const [loadedAgents, loadedWorkflows, loadedTools] = await Promise.all([
-        agentDb.getAllAgents(),
-        workflowDb.getAllWorkflows(),
-        toolDb.getAllTools()
-      ]);
-      setAgents(loadedAgents);
-      setWorkflows(loadedWorkflows);
-      setTools(loadedTools);
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Failed to load data:', error);
-      setAgents([]);
-      setWorkflows([]);
-      setTools([]);
-      setIsLoading(false);
-    }
-  };
 
   const handleEditAgent = async (agent: Agent) => {
     try {
@@ -180,7 +198,26 @@ export default function App() {
     setConversation(chatManagerRef.current.getConversation(conversation.id));
   };
 
-  const NavButton = ({ view, icon: Icon, label }: { view: View, icon: React.ComponentType<any>, label: string }) => (
+  const handleModelConfigured = async () => {
+    // Reload data after model configuration changes
+    setIsLoading(true);
+    try {
+      const [loadedAgents, loadedWorkflows, loadedTools] = await Promise.all([
+        agentDb.getAllAgents(),
+        workflowDb.getAllWorkflows(),
+        toolDb.getAllTools()
+      ]);
+      setAgents(loadedAgents);
+      setWorkflows(loadedWorkflows);
+      setTools(loadedTools);
+    } catch (error) {
+      console.error('Failed to reload data:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const NavButton = ({ view, icon: Icon, label }: NavButtonProps) => (
     <button
       onClick={() => {
         setCurrentView(view);
@@ -288,7 +325,7 @@ export default function App() {
             {/* Left Column */}
             <div className="lg:col-span-8 space-y-4 sm:space-y-8">
               <div className="bg-white rounded-lg p-4 sm:p-6">
-                <ModelManager onModelConfigured={() => {}} />
+                <ModelManager onModelConfigured={handleModelConfigured} />
               </div>
               
               <div className="bg-white rounded-lg p-4 sm:p-6">
