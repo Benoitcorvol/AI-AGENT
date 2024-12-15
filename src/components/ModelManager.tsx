@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { modelDb } from '../db/modelDb';
+import { Loader2 } from 'lucide-react';
 
 interface Props {
   onModelConfigured: () => void;
@@ -10,7 +11,9 @@ export function ModelManager({ onModelConfigured }: Props) {
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   useEffect(() => {
     loadConfig();
@@ -37,32 +40,57 @@ export function ModelManager({ onModelConfigured }: Props) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setSuccessMessage(null);
+    setIsSaving(true);
 
     try {
       await modelDb.saveModelConfig(provider, apiKey, baseUrl || undefined);
+      setSuccessMessage('Configuration saved successfully');
       onModelConfigured();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save model configuration');
+    } finally {
+      setIsSaving(false);
     }
   };
 
   if (isLoading) {
-    return <div className="p-4">Loading...</div>;
+    return (
+      <div className="min-h-[12rem] flex items-center justify-center text-gray-500">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin" />
+          <span>Loading configuration...</span>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-sm p-6">
-      <h2 className="text-xl font-semibold mb-4">Model Configuration</h2>
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Model Configuration</h2>
+        {isSaving && (
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Saving...</span>
+          </div>
+        )}
+      </div>
       
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="provider" className="block text-sm font-medium text-gray-700 mb-1">
             Provider
           </label>
           <select
+            id="provider"
             value={provider}
-            onChange={(e) => setProvider(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              setProvider(e.target.value);
+              setError(null);
+              setSuccessMessage(null);
+            }}
+            className="w-full px-3 py-2 text-base sm:text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#128C7E] transition-shadow"
           >
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic</option>
@@ -71,40 +99,59 @@ export function ModelManager({ onModelConfigured }: Props) {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="apiKey" className="block text-sm font-medium text-gray-700 mb-1">
             API Key
           </label>
           <input
+            id="apiKey"
             type="password"
             value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              setApiKey(e.target.value);
+              setError(null);
+              setSuccessMessage(null);
+            }}
+            className="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#128C7E] transition-shadow"
             placeholder="Enter your API key"
           />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="baseUrl" className="block text-sm font-medium text-gray-700 mb-1">
             Base URL (Optional)
           </label>
           <input
+            id="baseUrl"
             type="text"
             value={baseUrl}
-            onChange={(e) => setBaseUrl(e.target.value)}
-            className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            onChange={(e) => {
+              setBaseUrl(e.target.value);
+              setError(null);
+              setSuccessMessage(null);
+            }}
+            className="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#128C7E] transition-shadow"
             placeholder="Custom base URL (if needed)"
           />
         </div>
 
         {error && (
-          <div className="text-red-500 text-sm">{error}</div>
+          <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
+        {successMessage && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-sm text-green-600">{successMessage}</p>
+          </div>
         )}
 
         <button
           type="submit"
-          className="w-full px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          disabled={isSaving}
+          className="w-full px-4 py-2 bg-[#128C7E] text-white text-base sm:text-sm rounded-lg hover:bg-[#075E54] focus:outline-none focus:ring-2 focus:ring-[#128C7E] focus:ring-offset-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Save Configuration
+          {isSaving ? 'Saving...' : 'Save Configuration'}
         </button>
       </form>
     </div>

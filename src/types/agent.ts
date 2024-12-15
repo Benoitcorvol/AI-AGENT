@@ -1,4 +1,4 @@
-export type ModelType = 'gpt-4' | 'gpt-3.5-turbo' | 'claude-2' | 'gemini-pro';
+export type ModelType = string;
 
 export type AgentRole = 'worker' | 'manager' | 'coordinator';
 
@@ -12,7 +12,7 @@ export interface Connection {
   id: string;
   type: 'database' | 'file' | 'api';
   name: string;
-  config: Record<string, any>;
+  config: Record<string, unknown>;
 }
 
 export interface Tool {
@@ -66,7 +66,7 @@ export interface WorkflowStep {
   description: string;
   agentId: string;
   toolId: string;
-  parameters: Record<string, any>;
+  parameters: Record<string, unknown>;
   validation?: {
     required: boolean;
     rules: ValidationRule[];
@@ -88,7 +88,7 @@ export interface WorkflowConfig {
   timeout?: number;
 }
 
-export type ValidationRuleValue = string | number | ((input: any) => boolean);
+export type ValidationRuleValue = string | number | ((value: unknown) => boolean);
 
 export interface ValidationRule {
   type: 'regex' | 'range' | 'custom';

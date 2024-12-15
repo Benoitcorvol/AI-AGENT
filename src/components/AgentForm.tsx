@@ -1,9 +1,12 @@
 import React from 'react';
 import { X } from 'lucide-react';
-import { Agent, ModelType, Connection, AgentRole } from '../types/agent';
+import { Agent, ModelType, AgentRole, Tool } from '../types/agent';
 import { roleCapabilities, roleDescriptions } from '../utils/agentRoles';
 import { ToolSelector } from './ToolSelector';
 import { toolDb } from '../db/database';
+import { modelProviders } from '../config/modelProviders';
+import { modelDb } from '../db/modelDb';
+import { ModelConfig } from '../types/models';
 
 interface AgentFormProps {
   onSubmit: (agent: Partial<Agent>) => void;
@@ -12,11 +15,11 @@ interface AgentFormProps {
   initialData?: Agent;
 }
 
-const MODEL_OPTIONS: ModelType[] = ['gpt-4', 'gpt-3.5-turbo', 'claude-2', 'gemini-pro'];
 const ROLE_OPTIONS: AgentRole[] = ['worker', 'coordinator', 'manager'];
 
 export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: AgentFormProps) {
-  const [availableTools, setAvailableTools] = React.useState([]);
+  const [availableTools, setAvailableTools] = React.useState<Tool[]>([]);
+  const [configuredModels, setConfiguredModels] = React.useState<ModelConfig[]>([]);
   
   React.useEffect(() => {
     const loadTools = async () => {
@@ -30,10 +33,28 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
     loadTools();
   }, []);
 
+  React.useEffect(() => {
+    const loadConfiguredModels = async () => {
+      const models: ModelConfig[] = [];
+      for (const provider of modelProviders) {
+        try {
+          const config = await modelDb.getModelConfig(provider.name.toLowerCase());
+          if (config?.apiKey) {
+            models.push(...provider.models);
+          }
+        } catch (error) {
+          console.error(`Failed to load models for ${provider.name}:`, error);
+        }
+      }
+      setConfiguredModels(models);
+    };
+    loadConfiguredModels();
+  }, []);
+
   const [formData, setFormData] = React.useState<Partial<Agent>>({
     name: '',
     description: '',
-    model: 'gpt-4',
+    model: configuredModels[0]?.id || '',
     systemPrompt: '',
     context: '',
     temperature: 0.7,
@@ -68,6 +89,16 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
       id: initialData?.id || crypto.randomUUID(),
     });
   };
+
+  // Group models by provider
+  const modelsByProvider = configuredModels.reduce((acc, model) => {
+    const provider = model.provider;
+    if (!acc[provider]) {
+      acc[provider] = [];
+    }
+    acc[provider].push(model);
+    return acc;
+  }, {} as Record<string, ModelConfig[]>);
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-8 z-50 animate-in fade-in duration-200">
@@ -120,12 +151,21 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                 required
               >
-                {MODEL_OPTIONS.map((model) => (
-                  <option key={model} value={model}>
-                    {model}
-                  </option>
+                {Object.entries(modelsByProvider).map(([provider, models]) => (
+                  <optgroup key={provider} label={provider.charAt(0).toUpperCase() + provider.slice(1)}>
+                    {models.map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 ))}
               </select>
+              {configuredModels.length === 0 && (
+                <p className="mt-1 text-sm text-red-500">
+                  No models configured. Please configure models in the Model Manager.
+                </p>
+              )}
             </div>
 
             <div>

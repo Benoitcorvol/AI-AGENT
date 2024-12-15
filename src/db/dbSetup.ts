@@ -1,4 +1,3 @@
-import { Tool } from '../types/agent';
 import { initialTools } from './initialData/tools';
 import { initialAgents } from './initialData/agents';
 

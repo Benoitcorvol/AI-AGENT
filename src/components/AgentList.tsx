@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
-import { Agent, AgentRole } from '../types/agent';
+import { Agent } from '../types/agent';
 import { AgentCard } from './AgentCard';
 import { AgentForm } from './AgentForm';
 
@@ -49,7 +49,7 @@ export function AgentList({ agents, isLoading, onEditAgent, onDeleteAgent }: Age
           New Agent
         </button>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3 gap-4 mt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
         {isLoading ? (
           <div className="col-span-full flex justify-center py-12">
             <div className="animate-pulse flex space-x-4">

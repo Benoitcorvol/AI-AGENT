@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Brain, Github, MessageCircle, Layout, Database } from 'lucide-react';
+import { Brain, Github, MessageCircle, Layout, Database, Menu, X } from 'lucide-react';
 import { AgentList } from './components/AgentList';
 import { ToolList } from './components/ToolList';
 import { WorkflowBuilder } from './components/workflow/WorkflowBuilder';
@@ -27,6 +27,7 @@ export default function App() {
   const [conversation, setConversation] = useState<Conversation | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<View>('chat');
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const chatManagerRef = useRef<ChatManager | null>(null);
 
   useEffect(() => {
@@ -179,6 +180,23 @@ export default function App() {
     setConversation(chatManagerRef.current.getConversation(conversation.id));
   };
 
+  const NavButton = ({ view, icon: Icon, label }: { view: View, icon: React.ComponentType<any>, label: string }) => (
+    <button
+      onClick={() => {
+        setCurrentView(view);
+        setIsMobileMenuOpen(false);
+      }}
+      className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+        currentView === view 
+          ? 'bg-[#128C7E] text-white' 
+          : 'bg-white/10 hover:bg-white/20'
+      }`}
+    >
+      <Icon className="w-5 h-5" />
+      <span>{label}</span>
+    </button>
+  );
+
   return (
     <div className="min-h-screen bg-[#f0f2f5]">
       {/* Header */}
@@ -188,43 +206,15 @@ export default function App() {
             <Brain className="w-8 h-8" />
             <div>
               <h1 className="text-2xl font-bold">AI Workflow Chat</h1>
-              <p className="text-green-100 text-sm">Created by Benoit Corvol</p>
+              <p className="text-green-100 text-sm hidden sm:block">Created by Benoit Corvol</p>
             </div>
           </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => setCurrentView('chat')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                currentView === 'chat' 
-                  ? 'bg-[#128C7E] text-white' 
-                  : 'bg-white/10 hover:bg-white/20'
-              }`}
-            >
-              <MessageCircle className="w-5 h-5" />
-              <span>Chat</span>
-            </button>
-            <button
-              onClick={() => setCurrentView('dashboard')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                currentView === 'dashboard' 
-                  ? 'bg-[#128C7E] text-white' 
-                  : 'bg-white/10 hover:bg-white/20'
-              }`}
-            >
-              <Layout className="w-5 h-5" />
-              <span>Dashboard</span>
-            </button>
-            <button
-              onClick={() => setCurrentView('database')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-                currentView === 'database' 
-                  ? 'bg-[#128C7E] text-white' 
-                  : 'bg-white/10 hover:bg-white/20'
-              }`}
-            >
-              <Database className="w-5 h-5" />
-              <span>Database</span>
-            </button>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center gap-4">
+            <NavButton view="chat" icon={MessageCircle} label="Chat" />
+            <NavButton view="dashboard" icon={Layout} label="Dashboard" />
+            <NavButton view="database" icon={Database} label="Database" />
             <a
               href="https://github.com/benoitcor"
               target="_blank"
@@ -235,7 +225,36 @@ export default function App() {
               <span>GitHub</span>
             </a>
           </div>
+
+          {/* Mobile Menu Button */}
+          <button 
+            className="md:hidden p-2"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden px-4 py-2 bg-[#064940] border-t border-white/10">
+            <div className="flex flex-col gap-2">
+              <NavButton view="chat" icon={MessageCircle} label="Chat" />
+              <NavButton view="dashboard" icon={Layout} label="Dashboard" />
+              <NavButton view="database" icon={Database} label="Database" />
+              <a
+                href="https://github.com/benoitcor"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg hover:bg-white/20 transition-colors"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                <Github className="w-5 h-5" />
+                <span>GitHub</span>
+              </a>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Content */}
@@ -243,12 +262,12 @@ export default function App() {
         {currentView === 'chat' ? (
           <div className="max-w-4xl mx-auto">
             {!selectedWorkflow ? (
-              <div className="bg-white rounded-lg shadow-sm p-8 text-center">
-                <h2 className="text-2xl font-semibold text-gray-800 mb-4">Welcome to AI Workflow Chat</h2>
+              <div className="bg-white rounded-lg shadow-sm p-4 sm:p-8 text-center">
+                <h2 className="text-xl sm:text-2xl font-semibold text-gray-800 mb-4">Welcome to AI Workflow Chat</h2>
                 <p className="text-gray-600 mb-6">Start by selecting or creating a workflow to begin a conversation.</p>
                 <button
                   onClick={() => setCurrentView('dashboard')}
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-[#128C7E] text-white rounded-lg hover:bg-[#075E54] transition-colors"
+                  className="inline-flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-[#128C7E] text-white rounded-lg hover:bg-[#075E54] transition-colors"
                 >
                   <Layout className="w-5 h-5" />
                   <span>Go to Dashboard</span>
@@ -265,44 +284,54 @@ export default function App() {
         ) : currentView === 'database' ? (
           <DatabaseBrowser />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-8">
             {/* Left Column */}
-            <div className="lg:col-span-8 space-y-8">
-              <ModelManager onModelConfigured={() => {}} />
+            <div className="lg:col-span-8 space-y-4 sm:space-y-8">
+              <div className="bg-white rounded-lg p-4 sm:p-6">
+                <ModelManager onModelConfigured={() => {}} />
+              </div>
               
-              <AgentList
-                agents={agents}
-                isLoading={isLoading}
-                onEditAgent={handleEditAgent}
-                onDeleteAgent={handleDeleteAgent}
-              />
+              <div className="bg-white rounded-lg p-4 sm:p-6">
+                <AgentList
+                  agents={agents}
+                  isLoading={isLoading}
+                  onEditAgent={handleEditAgent}
+                  onDeleteAgent={handleDeleteAgent}
+                />
+              </div>
 
-              <ToolList
-                tools={tools}
-                isLoading={isLoading}
-                onEditTool={handleEditTool}
-                onDeleteTool={handleDeleteTool}
-              />
+              <div className="bg-white rounded-lg p-4 sm:p-6">
+                <ToolList
+                  tools={tools}
+                  isLoading={isLoading}
+                  onEditTool={handleEditTool}
+                  onDeleteTool={handleDeleteTool}
+                />
+              </div>
             </div>
 
             {/* Right Column */}
-            <div className="lg:col-span-4 space-y-8">
-              <WorkflowList
-                agents={agents}
-                workflows={workflows}
-                executions={[]}
-                onEditAgent={handleEditAgent}
-                onSelectWorkflow={setSelectedWorkflow}
-                onDeleteWorkflow={handleDeleteWorkflow}
-                onCreateWorkflow={handleCreateWorkflow}
-              />
+            <div className="lg:col-span-4 space-y-4 sm:space-y-8">
+              <div className="bg-white rounded-lg p-4 sm:p-6">
+                <WorkflowList
+                  agents={agents}
+                  workflows={workflows}
+                  executions={[]}
+                  onEditAgent={handleEditAgent}
+                  onSelectWorkflow={setSelectedWorkflow}
+                  onDeleteWorkflow={handleDeleteWorkflow}
+                  onCreateWorkflow={handleCreateWorkflow}
+                />
+              </div>
 
               {selectedWorkflow && (
-                <WorkflowBuilder
-                  agents={agents}
-                  workflow={selectedWorkflow}
-                  onUpdateWorkflow={handleUpdateWorkflow}
-                />
+                <div className="bg-white rounded-lg p-4 sm:p-6">
+                  <WorkflowBuilder
+                    agents={agents}
+                    workflow={selectedWorkflow}
+                    onUpdateWorkflow={handleUpdateWorkflow}
+                  />
+                </div>
               )}
             </div>
           </div>

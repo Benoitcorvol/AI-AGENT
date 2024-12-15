@@ -29,7 +29,7 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
 
   if (!conversation) {
     return (
-      <div className="h-[600px] bg-[#f0f2f5] rounded-lg flex items-center justify-center text-gray-500">
+      <div className="min-h-[calc(100vh-16rem)] bg-[#f0f2f5] rounded-lg flex items-center justify-center text-gray-500">
         <p>Select a workflow to start a conversation</p>
       </div>
     );
@@ -57,7 +57,7 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
 
   const renderTaskDecomposition = (tasks: TaskItem[]) => {
     return (
-      <div className="mt-2 bg-white rounded-lg p-3 text-sm">
+      <div className="mt-2 bg-white rounded-lg p-2 sm:p-3 text-sm">
         <div className="flex items-center gap-2 text-gray-700 mb-2">
           <SplitSquareVertical className="w-4 h-4" />
           <span className="font-medium">Task Decomposition</span>
@@ -65,18 +65,18 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
         <ul className="space-y-2">
           {tasks.map((task: TaskItem, index: number) => (
             <li key={index} className="flex items-start gap-2">
-              <div className="w-4 h-4 rounded-full bg-green-100 flex items-center justify-center mt-1">
+              <div className="min-w-[1rem] h-4 rounded-full bg-green-100 flex items-center justify-center mt-1">
                 <span className="text-xs text-green-600">{index + 1}</span>
               </div>
-              <div className="flex-1">
-                <p className="text-gray-800">{task.description}</p>
+              <div className="flex-1 min-w-0">
+                <p className="text-gray-800 break-words">{task.description}</p>
                 {task.assignedTo && (
-                  <div className="flex items-center justify-between mt-1">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-1 gap-1">
                     <p className="text-xs text-gray-500">
                       Assigned to: {getAgentName(task.assignedTo)}
                     </p>
                     {task.status && (
-                      <span className={`text-xs px-2 py-1 rounded-full ${
+                      <span className={`text-xs px-2 py-1 rounded-full w-fit ${
                         task.status === 'completed' ? 'bg-green-100 text-green-700' :
                         task.status === 'in-progress' ? 'bg-blue-100 text-blue-700' :
                         'bg-gray-100 text-gray-700'
@@ -118,8 +118,8 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
         key={message.id}
         className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
       >
-        <div className={`flex items-start max-w-[70%] ${isUser ? 'flex-row-reverse' : ''}`}>
-          <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+        <div className={`flex items-start max-w-[85%] sm:max-w-[75%] ${isUser ? 'flex-row-reverse' : ''}`}>
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
             isUser ? 'bg-[#128C7E] ml-2' : isManager ? 'bg-[#075E54]' : 'bg-gray-600 mr-2'
           }`}>
             {isUser ? (
@@ -129,7 +129,7 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
             )}
           </div>
           
-          <div className={`max-w-[calc(100%-3rem)]`}>
+          <div className="min-w-0 flex-1">
             <div className="flex items-baseline mb-1">
               <span className={`text-sm font-medium ${isUser ? 'text-right' : ''} text-[#075E54]`}>
                 {sender}
@@ -141,7 +141,7 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
               )}
             </div>
 
-            <div className={`rounded-lg px-4 py-2 shadow-sm ${
+            <div className={`rounded-lg px-3 sm:px-4 py-2 shadow-sm break-words ${
               isUser 
                 ? 'bg-[#DCF8C6] text-black' 
                 : 'bg-white'
@@ -168,7 +168,7 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
               {message.metadata?.result?.tasks && renderTaskDecomposition(message.metadata.result.tasks)}
 
               {message.metadata?.result && !message.metadata.result.tasks && (
-                <div className="mt-2 text-xs bg-gray-50 rounded p-2">
+                <div className="mt-2 text-xs bg-gray-50 rounded p-2 overflow-x-auto">
                   <pre className="whitespace-pre-wrap">
                     {JSON.stringify(message.metadata.result, null, 2)}
                   </pre>
@@ -186,10 +186,10 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
   };
 
   return (
-    <div className="h-[600px] bg-[#f0f2f5] rounded-lg flex flex-col overflow-hidden">
+    <div className="min-h-[calc(100vh-16rem)] bg-[#f0f2f5] rounded-lg flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="p-4 bg-[#075E54] text-white">
-        <h3 className="text-lg font-semibold">{conversation.title}</h3>
+      <div className="p-3 sm:p-4 bg-[#075E54] text-white">
+        <h3 className="text-lg font-semibold truncate">{conversation.title}</h3>
         <div className="flex items-center gap-2 text-sm opacity-90">
           <span>{conversation.participants.length} participants</span>
           <span>•</span>
@@ -198,16 +198,16 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <div className="bg-[#FCF4CB] text-sm p-3 rounded-lg text-center mb-4">
-          Messages in this workflow are first processed by the manager agent, who will analyze and delegate tasks to specialized agents.
+      <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4">
+        <div className="bg-[#FCF4CB] text-sm p-2 sm:p-3 rounded-lg text-center mb-4">
+          <p className="text-sm">Messages in this workflow are first processed by the manager agent, who will analyze and delegate tasks to specialized agents.</p>
         </div>
         {conversation.messages.map(renderMessage)}
         <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
-      <div className="p-4 bg-[#f0f2f5]">
+      <div className="p-3 sm:p-4 bg-[#f0f2f5]">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -230,12 +230,12 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
               }
             }}
             placeholder="Type your message..."
-            className="flex-1 px-4 py-3 bg-white border-none rounded-lg focus:ring-2 focus:ring-[#128C7E] shadow-sm"
+            className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-white border-none rounded-lg focus:ring-2 focus:ring-[#128C7E] shadow-sm"
           />
           <button
             type="submit"
             disabled={!message.trim()}
-            className="p-3 bg-[#128C7E] text-white rounded-full hover:bg-[#075E54] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 sm:p-3 bg-[#128C7E] text-white rounded-full hover:bg-[#075E54] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send className="w-5 h-5" />
           </button>

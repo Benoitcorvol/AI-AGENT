@@ -51,13 +51,15 @@ export const agentDb = {
         const request = store.getAll();
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
-          const agents = request.result || initialAgents;
+          // Only use request.result, don't fallback to initialAgents here
+          const agents = request.result;
           console.log('Loaded agents:', agents);
           resolve(agents);
         };
       });
     } catch (error) {
       console.error('Failed to load agents:', error);
+      // Only use initialAgents as fallback when there's an actual error
       return initialAgents;
     }
   }
