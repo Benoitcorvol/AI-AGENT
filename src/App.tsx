@@ -16,7 +16,7 @@ import { toolDb } from './db/toolDb';
 import { workflowDb } from './db/workflowDb';
 import { modelDb } from './db/modelDb';
 import { ChatManager } from './services/chatManager';
-import { initializeDB } from './db/dbSetup';
+import { initializeDB, clearDatabase } from './db/dbSetup';
 
 type View = 'chat' | 'dashboard' | 'database';
 
@@ -42,14 +42,9 @@ export default function App() {
       try {
         setIsLoading(true);
         
-        // Initialize database first
+        // Clear and reinitialize the database
+        await clearDatabase();
         await initializeDB();
-        
-        // Initialize model configurations if needed
-        const modelConfigs = await modelDb.getAllModelConfigs();
-        if (modelConfigs.length === 0) {
-          await modelDb.initializeProviders();
-        }
         
         // Load all data after initialization
         const [loadedAgents, loadedWorkflows, loadedTools] = await Promise.all([
