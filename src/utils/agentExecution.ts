@@ -85,49 +85,30 @@ async function executeTool(
     // Get API key from model database
     const modelConfig = await modelDb.getModelConfig('openrouter');
     if (!modelConfig || !modelConfig.apiKey) {
-      throw new Error('OpenRouter API key not found in database');
+      throw new Error('OpenRouter API key not found in database. Please configure it in the Model Manager.');
     }
 
     const apiKey = modelConfig.apiKey;
     const baseUrl = modelConfig.baseUrl || 'https://openrouter.ai/api/v1';
 
     // Get the model configuration to ensure we use the correct ID
-    const model = modelConfig.models.find(m => m.id === agent.model || `openai/${agent.model}`);
+    const model = modelConfig.models.find(m => m.id === agent.model);
     if (!model) {
-      throw new Error(`Model ${agent.model} not found in OpenRouter configuration`);
+      throw new Error(`Model ${agent.model} not found in OpenRouter configuration. Please ensure a valid model is selected.`);
     }
 
-    // Log configuration for debugging
-    console.debug('OpenRouter Configuration:', {
-      baseUrl,
-      modelId: model.id,
-      hasApiKey: !!apiKey,
-      modelCapabilities: model.capabilities
-    });
+    // Construct messages array with proper formatting
+    const messages = [];
 
-    // Construct headers with all required fields
-    const headers = {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': window.location.origin,
-      'X-Title': 'Bolt'
-    };
-
-    // Log headers for debugging (excluding sensitive data)
-    console.debug('Request Headers:', {
-      'Content-Type': headers['Content-Type'],
-      'HTTP-Referer': headers['HTTP-Referer'],
-      'X-Title': headers['X-Title']
-    });
-
-    // Construct messages array
-    const messages = [
-      {
+    // Add system message if present
+    if (context.systemPrompt) {
+      messages.push({
         role: 'system',
         content: context.systemPrompt
-      }
-    ];
+      });
+    }
 
+    // Add context as system message if present
     if (context.context) {
       messages.push({
         role: 'system',
@@ -135,77 +116,51 @@ async function executeTool(
       });
     }
 
+    // Add user message (the actual prompt)
     messages.push({
       role: 'user',
       content: parameters.prompt
     });
 
-    // Construct request body
+    // Construct request body according to OpenRouter specifications
     const body = {
-      model: model.id, // Use the exact model ID from configuration
+      model: model.id,
       messages: messages,
       temperature: context.temperature || model.defaultTemperature,
-      max_tokens: context.maxTokens || model.maxTokens
+      max_tokens: context.maxTokens || model.maxTokens,
+      top_p: 1,
+      stream: false
     };
 
-    // Log request body for debugging (excluding sensitive data)
-    console.debug('Request Body:', {
-      model: body.model,
-      messageCount: body.messages.length,
-      temperature: body.temperature,
-      max_tokens: body.max_tokens
-    });
-
     try {
-      console.debug('Sending request to OpenRouter API...');
-      
+      // Construct headers with all required fields
+      const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+        'HTTP-Referer': window.location.origin || 'http://localhost:3000',
+        'X-Title': 'Bolt'
+      };
+
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: headers,
         body: JSON.stringify(body)
       });
 
-      // Log response status and headers for debugging
-      console.debug('Response Status:', response.status);
-      console.debug('Response Headers:', Object.fromEntries(response.headers.entries()));
-
       if (!response.ok) {
-        const errorText = await response.text();
-        let errorData;
+        let errorMessage = `OpenRouter API error: ${response.status}`;
         try {
-          errorData = JSON.parse(errorText);
+          const errorData = await response.json();
+          errorMessage += ` - ${errorData.error?.message || errorData.message || 'Unknown error'}`;
         } catch {
-          errorData = { message: errorText };
+          errorMessage += ` - ${response.statusText || 'Unknown error'}`;
         }
-        
-        console.error('OpenRouter API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorData
-        });
-        
-        throw new Error(
-          `OpenRouter API error: ${response.status} - ${
-            errorData.error?.message || 
-            errorData.message || 
-            response.statusText || 
-            'Unknown error'
-          }`
-        );
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      
-      // Log response data structure for debugging
-      console.debug('Response Data Structure:', {
-        hasChoices: Array.isArray(data.choices),
-        choicesLength: data?.choices?.length,
-        hasMessage: !!data?.choices?.[0]?.message,
-        hasContent: !!data?.choices?.[0]?.message?.content
-      });
 
       if (!data.choices?.[0]?.message?.content) {
-        console.error('Invalid Response Format:', data);
         throw new Error('Invalid response format from OpenRouter API');
       }
 
@@ -215,13 +170,11 @@ async function executeTool(
         requiresDelegation: false
       };
     } catch (error: any) {
-      // Enhanced error logging
       console.error('OpenRouter Request Failed:', {
         error: error.message,
-        stack: error.stack,
-        cause: error.cause
+        stack: error.stack
       });
-      throw error; // Preserve the original error
+      throw error;
     }
   } else {
     return new Promise((resolve) => {

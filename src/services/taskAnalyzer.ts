@@ -42,31 +42,30 @@ export class TaskAnalyzer {
 
   private async breakdownTask(task: Task): Promise<SubTask[]> {
     // Use the manager agent to break down the task
-    const analysisPrompt = `
-      Analyze the following task and break it down into subtasks:
-      Title: ${task.title}
-      Description: ${task.description}
-      Priority: ${task.priority}
+    const analysisPrompt = `Break down this task into subtasks:
+Task Title: ${task.title}
+Task Description: ${task.description}
+Priority: ${task.priority}
 
-      For each subtask, provide:
-      1. A clear title and description
-      2. Required capabilities/skills
-      3. Dependencies on other subtasks
-      4. Estimated complexity (1-5)
-      5. Expected output format
+For each subtask, provide:
+1. Title
+2. Description
+3. Required capabilities/skills
+4. Dependencies on other subtasks
+5. Complexity (1-5)
+6. Expected output format
 
-      Respond with a JSON array of subtasks in this exact format:
-      [
-        {
-          "title": "Subtask title",
-          "description": "Detailed description",
-          "requiredCapabilities": ["capability1", "capability2"],
-          "dependencies": [],
-          "complexity": 2,
-          "expectedOutput": "Expected output format"
-        }
-      ]
-    `;
+Format your response as a JSON array like this:
+[
+  {
+    "title": "Subtask title",
+    "description": "Detailed description",
+    "requiredCapabilities": ["capability1", "capability2"],
+    "dependencies": [],
+    "complexity": 2,
+    "expectedOutput": "Expected output format"
+  }
+]`;
 
     try {
       const textGenTool = this.managerAgent.tools.find(t => t.name === 'text-generation');
