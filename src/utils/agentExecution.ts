@@ -92,9 +92,22 @@ async function executeTool(
     const baseUrl = modelConfig.baseUrl || 'https://openrouter.ai/api/v1';
 
     // Get the model configuration to ensure we use the correct ID
-    const model = modelConfig.models.find(m => m.id === agent.model);
+    // First try exact match, then try with provider prefix
+    const model = modelConfig.models.find(m => 
+      m.id === agent.model || 
+      m.id === `openai/${agent.model}` ||
+      m.id === `anthropic/${agent.model}` ||
+      m.id === `google/${agent.model}` ||
+      m.id === `meta/${agent.model}`
+    );
+
     if (!model) {
-      throw new Error(`Model ${agent.model} not found in OpenRouter configuration. Please ensure a valid model is selected.`);
+      // Provide a more helpful error message listing available models
+      const availableModels = modelConfig.models.map(m => m.id).join(', ');
+      throw new Error(
+        `Model ${agent.model} not found in OpenRouter configuration. ` +
+        `Available models are: ${availableModels}`
+      );
     }
 
     // Construct messages array with proper formatting
@@ -140,6 +153,14 @@ async function executeTool(
         'HTTP-Referer': window.location.origin || 'http://localhost:3000',
         'X-Title': 'Bolt'
       };
+
+      console.debug('OpenRouter Request:', {
+        url: `${baseUrl}/chat/completions`,
+        model: model.id,
+        messageCount: messages.length,
+        temperature: body.temperature,
+        max_tokens: body.max_tokens
+      });
 
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',

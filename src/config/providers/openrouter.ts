@@ -25,137 +25,92 @@ export const openrouterProvider: ProviderConfig = {
       capabilities: ['text-generation']
     },
     {
-        id: 'anthropic/claude-2',
-        name: 'Claude 2',
-        provider: 'openrouter' as const,
-        contextWindow: 100000,
-        maxTokens: 8000,
-        defaultTemperature: 0.7,
-        capabilities: ['text-generation']
-    },
-    {
-        id: 'google/palm-2-chat-bison',
-        name: 'PaLM 2 Chat Bison',
-        provider: 'openrouter' as const,
-        contextWindow: 8192,
-        maxTokens: 4096,
-        defaultTemperature: 0.7,
-        capabilities: ['text-generation']
-    },
-    {
-        id: 'mistralai/mistral-7b-instruct',
-        name: 'Mistral 7B Instruct',
-        provider: 'openrouter' as const,
-        contextWindow: 8192,
-        maxTokens: 4096,
-        defaultTemperature: 0.7,
-        capabilities: ['text-generation']
-    },
-    {
-        id: 'meta/llama-2-70b-chat',
-        name: 'Llama 2 70B Chat',
-        provider: 'openrouter' as const,
-        contextWindow: 4096,
-        maxTokens: 2048,
-        defaultTemperature: 0.7,
-        capabilities: ['text-generation']
-    },
-    {
-      id: 'xai/grok-2-vision-1212',
-      name: 'Grok 2 Vision 1212',
+      id: 'anthropic/claude-2',
+      name: 'Claude 2',
       provider: 'openrouter' as const,
-      contextWindow: 33000,
+      contextWindow: 100000,
+      maxTokens: 8000,
+      defaultTemperature: 0.7,
+      capabilities: ['text-generation']
+    },
+    {
+      id: 'google/palm-2-chat-bison',
+      name: 'PaLM 2 Chat Bison',
+      provider: 'openrouter' as const,
+      contextWindow: 8192,
+      maxTokens: 4096,
+      defaultTemperature: 0.7,
+      capabilities: ['text-generation']
+    },
+    {
+      id: 'mistralai/mistral-7b-instruct',
+      name: 'Mistral 7B Instruct',
+      provider: 'openrouter' as const,
+      contextWindow: 8192,
+      maxTokens: 4096,
+      defaultTemperature: 0.7,
+      capabilities: ['text-generation']
+    },
+    {
+      id: 'meta/llama-2-70b-chat',
+      name: 'Llama 2 70B Chat',
+      provider: 'openrouter' as const,
+      contextWindow: 4096,
       maxTokens: 2048,
       defaultTemperature: 0.7,
       capabilities: ['text-generation']
     },
     {
-      id: 'xai/grok-2-1212',
-      name: 'Grok 2 1212',
+      id: 'google/gemini-pro',
+      name: 'Gemini Pro',
       provider: 'openrouter' as const,
-      contextWindow: 131000,
+      contextWindow: 30720,
       maxTokens: 2048,
       defaultTemperature: 0.7,
       capabilities: ['text-generation']
     },
     {
-      id: 'cohere/command-r7b-12-2024',
-      name: 'Command R7B (12-2024)',
+      id: 'google/gemini-pro-vision',
+      name: 'Gemini Pro Vision',
       provider: 'openrouter' as const,
-      contextWindow: 128000,
+      contextWindow: 30720,
       maxTokens: 2048,
+      defaultTemperature: 0.7,
+      capabilities: ['text-generation', 'image-understanding']
+    },
+    {
+      id: 'meta/llama-3-70b-chat',
+      name: 'Llama 3 70B Chat',
+      provider: 'openrouter' as const,
+      contextWindow: 8192,
+      maxTokens: 4096,
       defaultTemperature: 0.7,
       capabilities: ['text-generation']
     },
     {
-      id: 'google/gemini-2-0-flash-experimental',
-      name: 'Gemini 2.0 Flash Experimental (free)',
+      id: 'anthropic/claude-3-opus',
+      name: 'Claude 3 Opus',
       provider: 'openrouter' as const,
-      contextWindow: 1050000,
-      maxTokens: 2048,
+      contextWindow: 200000,
+      maxTokens: 4096,
       defaultTemperature: 0.7,
       capabilities: ['text-generation']
     },
     {
-      id: 'google/gemini-experimental-1206',
-      name: 'Gemini Experimental 1206 (free)',
+      id: 'anthropic/claude-3-sonnet',
+      name: 'Claude 3 Sonnet',
       provider: 'openrouter' as const,
-      contextWindow: 2100000,
-      maxTokens: 2048,
+      contextWindow: 200000,
+      maxTokens: 4096,
       defaultTemperature: 0.7,
       capabilities: ['text-generation']
     },
     {
-      id: 'meta/llama-3-3-70b-instruct',
-      name: 'Llama 3.3 70B Instruct',
+      id: 'anthropic/claude-3-haiku',
+      name: 'Claude 3 Haiku',
       provider: 'openrouter' as const,
-      contextWindow: 131000,
-      maxTokens: 2048,
-      defaultTemperature: 0.7,
-      capabilities: ['text-generation']
-    },
-    {
-      id: 'amazon/nova-lite-1-0',
-      name: 'Amazon: Nova Lite 1.0',
-      provider: 'openrouter' as const,
-      contextWindow: 300000,
-      maxTokens: 2048,
-      defaultTemperature: 0.7,
-      capabilities: ['text-generation']
-    },
-     {
-      id: 'amazon/nova-micro-1-0',
-      name: 'Amazon: Nova Micro 1.0',
-      provider: 'openrouter' as const,
-      contextWindow: 128000,
-      maxTokens: 2048,
-      defaultTemperature: 0.7,
-      capabilities: ['text-generation']
-    },
-    {
-      id: 'amazon/nova-pro-1-0',
-      name: 'Amazon: Nova Pro 1.0',
-      provider: 'openrouter' as const,
-      contextWindow: 300000,
-      maxTokens: 2048,
-      defaultTemperature: 0.7,
-      capabilities: ['text-generation']
-    },
-    {
-      id: 'qwen/qwq-32b-preview',
-      name: 'Qwen: QwQ 32B Preview',
-      provider: 'openrouter' as const,
-       contextWindow: 33000,
-      maxTokens: 2048,
-      defaultTemperature: 0.7,
-      capabilities: ['text-generation']
-    },
-     {
-      id: 'google/gemini-experimental-1121',
-      name: 'Google: Gemini Experimental 1121 (free)',
-      provider: 'openrouter' as const,
-      contextWindow: 41000,
-      maxTokens: 2048,
+      contextWindow: 200000,
+      maxTokens: 4096,
       defaultTemperature: 0.7,
       capabilities: ['text-generation']
     }

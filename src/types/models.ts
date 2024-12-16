@@ -1,5 +1,5 @@
 export type ModelProvider = 'openai' | 'anthropic' | 'google' | 'mistral' | 'xai' | 'meta' | 'ollama' | 'openrouter';
-export type ModelCapability = 'text-generation' | 'chat' | 'embeddings';
+export type ModelCapability = 'text-generation' | 'chat' | 'embeddings' | 'image-understanding';
 
 export interface ModelConfig {
   id: string;
