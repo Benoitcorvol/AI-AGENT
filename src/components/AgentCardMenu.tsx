@@ -1,28 +1,35 @@
 import React from 'react';
-import { MoreVertical } from 'lucide-react';
+import { Edit, Trash2, Copy } from 'lucide-react';
 
-interface AgentCardMenuProps {
+export interface AgentCardMenuProps {
   onEdit: () => void;
   onDelete: () => void;
+  onDuplicate: () => void;
 }
 
-export function AgentCardMenu({ onEdit, onDelete }: AgentCardMenuProps) {
+export function AgentCardMenu({ onEdit, onDelete, onDuplicate }: AgentCardMenuProps) {
   return (
-    <div className="relative group">
-      <button className="p-1 rounded-full hover:bg-gray-100">
-        <MoreVertical className="w-5 h-5 text-gray-500" />
-      </button>
-      <div className="hidden group-hover:block absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">
+    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-10">
+      <div className="p-1">
         <button
           onClick={onEdit}
-          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md flex items-center gap-2"
         >
+          <Edit className="w-4 h-4" />
           Edit Agent
         </button>
         <button
-          onClick={onDelete}
-          className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+          onClick={onDuplicate}
+          className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-md flex items-center gap-2"
         >
+          <Copy className="w-4 h-4" />
+          Duplicate Agent
+        </button>
+        <button
+          onClick={onDelete}
+          className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 rounded-md flex items-center gap-2"
+        >
+          <Trash2 className="w-4 h-4" />
           Delete Agent
         </button>
       </div>

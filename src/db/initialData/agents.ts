@@ -29,7 +29,7 @@ export const initialAgents: Agent[] = [
     context: 'Technical leadership and strategic planning',
     temperature: 0.7,
     maxTokens: 2048,
-    tools: [initialTools[0], initialTools[1]], // Web Search and Text Analysis
+    tools: [initialTools[0], initialTools[1], initialTools[3]], // Web Search, Text Analysis, and Text Generation
     connections: [],
     role: 'manager',
     capabilities: roleCapabilities.manager,

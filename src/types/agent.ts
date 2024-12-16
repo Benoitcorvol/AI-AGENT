@@ -6,6 +6,7 @@ export interface AgentCapabilities {
   canCreateSubAgents: boolean;
   canDelegateWork: boolean;
   canAccessOtherAgents: boolean;
+  canUseMemory: boolean; // New capability for memory system
 }
 
 export interface Connection {
@@ -30,6 +31,13 @@ export interface Parameter {
   required: boolean;
 }
 
+export interface MemoryConfig {
+  enabled: boolean;
+  retentionPeriod?: number; // Time in milliseconds to keep memories
+  minConfidence?: number; // Minimum confidence threshold for keeping memories
+  maxMemories?: number; // Maximum number of memories to retain
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -47,6 +55,7 @@ export interface Agent {
   subAgents: string[]; // IDs of worker agents managed by this agent
   apiKey?: string;
   baseUrl?: string;
+  memoryConfig?: MemoryConfig; // New memory configuration
 }
 
 export interface Workflow {

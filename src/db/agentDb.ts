@@ -13,7 +13,10 @@ export const agentDb = {
       });
       return agent;
     } catch (error) {
-      handleStoreError(error);
+      if (error instanceof Error || error instanceof DOMException) {
+        handleStoreError(error);
+      }
+      throw new Error('Unknown error occurred while creating agent');
     }
   },
 
@@ -27,7 +30,10 @@ export const agentDb = {
       });
       return agent;
     } catch (error) {
-      handleStoreError(error);
+      if (error instanceof Error || error instanceof DOMException) {
+        handleStoreError(error);
+      }
+      throw new Error('Unknown error occurred while updating agent');
     }
   },
 
@@ -40,7 +46,10 @@ export const agentDb = {
         request.onsuccess = () => resolve();
       });
     } catch (error) {
-      handleStoreError(error);
+      if (error instanceof Error || error instanceof DOMException) {
+        handleStoreError(error);
+      }
+      throw new Error('Unknown error occurred while deleting agent');
     }
   },
 

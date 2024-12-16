@@ -1,78 +1,125 @@
-import React from 'react';
-import { Wrench, GitBranch, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { MoreVertical, Brain } from 'lucide-react';
 import { Agent } from '../types/agent';
 import { AgentCardMenu } from './AgentCardMenu';
 import { AgentCardStats } from './AgentCardStats';
+import { MemoryManager } from '../services/memoryManager';
+import { MemoryNode } from '../types/memory';
 
 interface AgentCardProps {
   agent: Agent;
-  onEdit: (agent: Agent) => void;
-  onDelete: (id: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
 }
 
-export function AgentCard({ agent, onEdit, onDelete }: AgentCardProps) {
-  const getStatusColor = () => {
-    // This could be enhanced with real status logic
-    return 'bg-green-400';
+export function AgentCard({ agent, onEdit, onDelete, onDuplicate }: AgentCardProps) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [recentMemories, setRecentMemories] = useState<MemoryNode[]>([]);
+  const [isLoadingMemories, setIsLoadingMemories] = useState(true);
+
+  useEffect(() => {
+    const loadRecentMemories = async () => {
+      try {
+        const memoryManager = MemoryManager.getInstance();
+        const results = await memoryManager.queryMemories({
+          agentId: agent.id,
+          limit: 3
+        });
+        setRecentMemories(results.map(r => r.node));
+      } catch (error) {
+        console.error('Failed to load memories:', error);
+      } finally {
+        setIsLoadingMemories(false);
+      }
+    };
+
+    loadRecentMemories();
+  }, [agent.id]);
+
+  const handleClickOutside = (event: MouseEvent) => {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.agent-menu')) {
+      setShowMenu(false);
+    }
   };
 
+  useEffect(() => {
+    if (showMenu) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showMenu]);
+
   return (
-    <div className="group relative bg-white rounded-xl border border-gray-200 p-4 sm:p-6 hover:shadow-lg hover:border-indigo-200 transition-all duration-300 flex flex-col min-h-[300px]">
-      {/* Status Indicator */}
-      <div className="absolute top-4 right-4 w-2.5 h-2.5 rounded-full animate-pulse" style={{ backgroundColor: getStatusColor() }} />
-      
-      <div className="flex justify-between items-start mb-4">
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <div className="flex-shrink-0 p-2.5 bg-indigo-50 rounded-lg group-hover:bg-indigo-100 transition-colors duration-300 transform group-hover:scale-110">
-            <Users className="w-6 h-6 text-indigo-600" />
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow overflow-hidden">
+      <div className="p-4 sm:p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-gray-900">{agent.name}</h3>
+            <p className="text-sm text-gray-500 mt-1">{agent.description}</p>
           </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
-              {agent.name}
-            </h3>
-            <span className="text-xs text-gray-500 block">ID: {agent.id.slice(0, 8)}</span>
+          <div className="relative agent-menu">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowMenu(!showMenu);
+              }}
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <MoreVertical className="w-5 h-5 text-gray-500" />
+            </button>
+            {showMenu && (
+              <AgentCardMenu
+                onEdit={() => {
+                  setShowMenu(false);
+                  onEdit();
+                }}
+                onDelete={() => {
+                  setShowMenu(false);
+                  onDelete();
+                }}
+                onDuplicate={() => {
+                  setShowMenu(false);
+                  onDuplicate();
+                }}
+              />
+            )}
           </div>
         </div>
-        <div className="flex-shrink-0">
-          <AgentCardMenu onEdit={() => onEdit(agent)} onDelete={() => onDelete(agent.id)} />
-        </div>
-      </div>
-      
-      <div className="flex-grow">
-        <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 break-words">
-          {agent.description}
-        </p>
-      </div>
 
-      <div className="border-t border-gray-100 pt-4 mt-auto">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="flex items-center gap-2">
-            <Wrench className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">{agent.tools?.length || 0} Tools</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <GitBranch className="w-4 h-4 text-gray-400" />
-            <span className="text-sm text-gray-600">{agent.connections?.length || 0} Connections</span>
-          </div>
-        </div>
-        
         <AgentCardStats agent={agent} />
-      </div>
 
-      {/* Quick Action Buttons */}
-      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex justify-end gap-2">
-        <button 
-          onClick={() => onEdit(agent)}
-          className="px-3 py-1.5 text-xs bg-indigo-50 text-indigo-600 rounded-md hover:bg-indigo-100 transition-colors"
-        >
-          Edit
-        </button>
-        <button 
-          onClick={() => onDelete(agent.id)}
-          className="px-3 py-1.5 text-xs bg-red-50 text-red-600 rounded-md hover:bg-red-100 transition-colors"
-        >
-          Delete
-        </button>
+        {/* Recent Memories */}
+        <div className="mt-4 pt-4 border-t border-gray-100">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain className="w-4 h-4 text-indigo-500" />
+            <h4 className="text-sm font-medium text-gray-700">Recent Memories</h4>
+          </div>
+          {isLoadingMemories ? (
+            <div className="animate-pulse space-y-2">
+              <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+              <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+            </div>
+          ) : recentMemories.length > 0 ? (
+            <div className="space-y-2">
+              {recentMemories.map(memory => (
+                <div key={memory.id} className="flex items-start gap-2">
+                  <span className="px-2 py-0.5 bg-indigo-50 text-indigo-600 text-xs font-medium rounded-full">
+                    {memory.type}
+                  </span>
+                  <p className="text-sm text-gray-600 flex-1">
+                    {memory.content.length > 100 
+                      ? `${memory.content.slice(0, 100)}...` 
+                      : memory.content}
+                  </p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500 italic">No memories yet</p>
+          )}
+        </div>
       </div>
     </div>
   );

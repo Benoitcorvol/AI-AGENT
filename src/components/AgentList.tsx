@@ -37,6 +37,15 @@ export function AgentList({ agents, isLoading, onEditAgent, onDeleteAgent }: Age
     setShowForm(true);
   };
 
+  const handleDuplicateClick = (agent: Agent) => {
+    const duplicatedAgent = {
+      ...agent,
+      id: crypto.randomUUID(),
+      name: `${agent.name} (Copy)`,
+    };
+    onEditAgent(duplicatedAgent);
+  };
+
   return (
     <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
       <div className="flex justify-between items-center mb-4">
@@ -72,8 +81,9 @@ export function AgentList({ agents, isLoading, onEditAgent, onDeleteAgent }: Age
             <AgentCard
               key={agent.id}
               agent={agent}
-              onEdit={handleEditClick}
-              onDelete={onDeleteAgent}
+              onEdit={() => handleEditClick(agent)}
+              onDelete={() => onDeleteAgent(agent.id)}
+              onDuplicate={() => handleDuplicateClick(agent)}
             />
           ))
         )}

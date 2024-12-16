@@ -1,62 +1,37 @@
 # AI Agent Management Platform
 
-[Previous content remains exactly the same until the AgentCard section]
+[Previous content remains exactly the same until the Model Configuration section]
 
-### UI Components
+### Model Configuration
 
-#### AgentForm
-A form component for creating and editing agents with the following features:
-- Dynamic model selection based on configured providers:
-  - Models grouped by provider (OpenAI, Anthropic, etc.)
-  - Only shows models from providers with valid API keys
-  - Clear indication when no models are configured
-- Role-based configuration:
-  - Worker, Coordinator, and Manager roles
-  - Role-specific capabilities and descriptions
-  - Sub-agent selection for management roles
-- Tool integration:
-  - Dynamic tool selection
-  - Support for multiple tools per agent
-- Advanced settings:
-  - System prompt configuration
-  - Context management
-  - Temperature and token limit controls
-- Responsive layout with proper form validation
-- Support for both creation and editing modes
+The platform uses OpenRouter as the primary model provider, giving access to various AI models from different providers through a single API. Here's how to set up and configure models:
 
-#### AgentCard
-A card component that displays agent information with the following features:
-- Full text visibility for agent names and descriptions without truncation
-- Consistent card height with min-height constraint
-- Proper text wrapping and overflow handling
-- Flexible layout that adapts to content length
-- Enhanced visual hierarchy with:
-  - Clear separation between card sections
-  - Proper spacing for readability
-  - Subtle shadows and borders
-  - Interactive hover states
-- Status indicator with animation
-- Tool and connection count display
-- Quick action buttons (Edit/Delete) on hover
-- Responsive layout:
-  - Single column on mobile devices (up to md breakpoint)
-  - Two columns per row on desktop screens (md and above)
-- Proper handling of long text content using:
-  - Word breaking for long strings
-  - Flexible width containers
-  - Maintained spacing and alignment
+1. OpenRouter Setup
+- Visit [openrouter.ai/keys](https://openrouter.ai/keys) to get your API key
+- In the Model Configuration section of the platform, select "OpenRouter" as the provider
+- Enter your API key
+- (Optional) Configure a custom base URL if needed
 
-### Database Implementation
+2. Configuration Storage
+- Model configurations (API keys, base URLs) are securely stored in IndexedDB
+- Configurations can be updated or removed through the ModelManager UI component
+- No environment variables needed - all configuration is handled through the database
 
-#### Agent Database
-The application uses IndexedDB for persistent storage of agents with the following features:
-- Proper initialization of the database with initial agent data
-- CRUD operations for agents (Create, Read, Update, Delete)
-- Reliable agent loading from the database:
-  - Direct loading of agents from IndexedDB
-  - Fallback to initial agents only in case of database errors
-  - Proper handling of empty database states
-- Database versioning and schema management
-- Error handling and logging for database operations
+3. Available Models
+Through OpenRouter, the platform supports multiple models including:
+- GPT-3.5 Turbo and GPT-4 from OpenAI
+- Claude 2 from Anthropic
+- PaLM 2 from Google
+- Mistral 7B
+- Llama 2 70B
+- And more
+
+4. Model Selection
+- Models are automatically selected based on task requirements
+- Selection criteria include:
+  - Context window size
+  - Token limits
+  - Capabilities
+  - Cost efficiency
 
 [Rest of the README content remains exactly the same...]

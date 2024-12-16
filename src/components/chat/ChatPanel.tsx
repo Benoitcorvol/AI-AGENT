@@ -9,6 +9,16 @@ interface TaskItem {
   status?: 'pending' | 'in-progress' | 'completed';
 }
 
+interface MessageMetadata {
+  taskId?: string;
+  toolId?: string;
+  status?: 'thinking' | 'executing' | 'complete' | 'error';
+  result?: {
+    tasks?: TaskItem[];
+    [key: string]: unknown;
+  };
+}
+
 interface ChatPanelProps {
   conversation: Conversation | null;
   agents: Agent[];
@@ -47,7 +57,8 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
   };
 
   const getParticipantRole = (id: string) => {
-    return conversation.participants.find(p => p.id === id)?.role || '';
+    const participant = conversation.participants.find(p => p.id === id);
+    return participant?.type === 'agent' ? participant.role : undefined;
   };
 
   const getAgentName = (agentId: string) => {
@@ -112,6 +123,7 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
     const sender = getParticipantName(message.senderId);
     const role = getParticipantRole(message.senderId);
     const isManager = role === 'manager';
+    const metadata = message.metadata as MessageMetadata;
 
     return (
       <div
@@ -148,15 +160,15 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
             }`}>
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
               
-              {message.metadata?.status && (
+              {metadata?.status && (
                 <div className="mt-1 flex items-center gap-1 text-xs text-gray-600">
-                  {message.metadata.status === 'thinking' && (
+                  {metadata.status === 'thinking' && (
                     <>
                       <Loader2 className="w-3 h-3 animate-spin" />
                       <span>Thinking...</span>
                     </>
                   )}
-                  {message.metadata.status === 'executing' && (
+                  {metadata.status === 'executing' && (
                     <>
                       <Settings className="w-3 h-3 animate-spin" />
                       <span>Executing task...</span>
@@ -165,12 +177,12 @@ export function ChatPanel({ conversation, agents, onSendMessage }: ChatPanelProp
                 </div>
               )}
 
-              {message.metadata?.result?.tasks && renderTaskDecomposition(message.metadata.result.tasks)}
+              {metadata?.result?.tasks && renderTaskDecomposition(metadata.result.tasks)}
 
-              {message.metadata?.result && !message.metadata.result.tasks && (
+              {metadata?.result && !metadata.result.tasks && (
                 <div className="mt-2 text-xs bg-gray-50 rounded p-2 overflow-x-auto">
                   <pre className="whitespace-pre-wrap">
-                    {JSON.stringify(message.metadata.result, null, 2)}
+                    {JSON.stringify(metadata.result, null, 2)}
                   </pre>
                 </div>
               )}

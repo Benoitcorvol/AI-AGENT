@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { Agent, Tool, Parameter } from '../types/agent';
 import { WorkflowStep } from '../types/workflow';
+import { modelDb } from '../db/modelDb';
 
 interface ToolExecutionContext {
   systemPrompt: string;
@@ -80,54 +81,147 @@ async function executeTool(
   context: ToolExecutionContext,
   agent: Agent
 ): Promise<unknown> {
-  // This would be replaced with actual tool execution logic
-  // For now, we'll simulate tool execution
   if (tool.name === 'text-generation') {
-    const apiKey = agent.apiKey;
-    const baseUrl = agent.baseUrl || 'https://openrouter.ai/api/v1';
-    const model = agent.model;
-
-    if (!apiKey) {
-      throw new Error('API key is required for OpenRouter');
+    // Get API key from model database
+    const modelConfig = await modelDb.getModelConfig('openrouter');
+    if (!modelConfig || !modelConfig.apiKey) {
+      throw new Error('OpenRouter API key not found in database');
     }
 
-    const headers: Record<string, string> = {
+    const apiKey = modelConfig.apiKey;
+    const baseUrl = modelConfig.baseUrl || 'https://openrouter.ai/api/v1';
+
+    // Get the model configuration to ensure we use the correct ID
+    const model = modelConfig.models.find(m => m.id === agent.model || `openai/${agent.model}`);
+    if (!model) {
+      throw new Error(`Model ${agent.model} not found in OpenRouter configuration`);
+    }
+
+    // Log configuration for debugging
+    console.debug('OpenRouter Configuration:', {
+      baseUrl,
+      modelId: model.id,
+      hasApiKey: !!apiKey,
+      modelCapabilities: model.capabilities
+    });
+
+    // Construct headers with all required fields
+    const headers = {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      'HTTP-Referer': 'YOUR_SITE_URL', // Replace with your site URL
-      'X-Title': 'YOUR_APP_NAME' // Replace with your app name
+      'HTTP-Referer': window.location.origin,
+      'X-Title': 'Bolt'
     };
 
-    const body: string = JSON.stringify({
-      model: model,
-      messages: [
-        {
-          role: 'user',
-          content: parameters.prompt
-        }
-      ]
+    // Log headers for debugging (excluding sensitive data)
+    console.debug('Request Headers:', {
+      'Content-Type': headers['Content-Type'],
+      'HTTP-Referer': headers['HTTP-Referer'],
+      'X-Title': headers['X-Title']
+    });
+
+    // Construct messages array
+    const messages = [
+      {
+        role: 'system',
+        content: context.systemPrompt
+      }
+    ];
+
+    if (context.context) {
+      messages.push({
+        role: 'system',
+        content: context.context
+      });
+    }
+
+    messages.push({
+      role: 'user',
+      content: parameters.prompt
+    });
+
+    // Construct request body
+    const body = {
+      model: model.id, // Use the exact model ID from configuration
+      messages: messages,
+      temperature: context.temperature || model.defaultTemperature,
+      max_tokens: context.maxTokens || model.maxTokens
+    };
+
+    // Log request body for debugging (excluding sensitive data)
+    console.debug('Request Body:', {
+      model: body.model,
+      messageCount: body.messages.length,
+      temperature: body.temperature,
+      max_tokens: body.max_tokens
     });
 
     try {
+      console.debug('Sending request to OpenRouter API...');
+      
       const response = await fetch(`${baseUrl}/chat/completions`, {
         method: 'POST',
         headers: headers,
-        body: body
+        body: JSON.stringify(body)
       });
 
+      // Log response status and headers for debugging
+      console.debug('Response Status:', response.status);
+      console.debug('Response Headers:', Object.fromEntries(response.headers.entries()));
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(`OpenRouter API error: ${response.status} - ${error.message}`);
+        const errorText = await response.text();
+        let errorData;
+        try {
+          errorData = JSON.parse(errorText);
+        } catch {
+          errorData = { message: errorText };
+        }
+        
+        console.error('OpenRouter API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        });
+        
+        throw new Error(
+          `OpenRouter API error: ${response.status} - ${
+            errorData.error?.message || 
+            errorData.message || 
+            response.statusText || 
+            'Unknown error'
+          }`
+        );
       }
 
       const data = await response.json();
+      
+      // Log response data structure for debugging
+      console.debug('Response Data Structure:', {
+        hasChoices: Array.isArray(data.choices),
+        choicesLength: data?.choices?.length,
+        hasMessage: !!data?.choices?.[0]?.message,
+        hasContent: !!data?.choices?.[0]?.message?.content
+      });
+
+      if (!data.choices?.[0]?.message?.content) {
+        console.error('Invalid Response Format:', data);
+        throw new Error('Invalid response format from OpenRouter API');
+      }
+
       return {
         success: true,
         result: data.choices[0].message.content,
         requiresDelegation: false
       };
     } catch (error: any) {
-      throw new Error(`OpenRouter API request failed: ${error.message}`);
+      // Enhanced error logging
+      console.error('OpenRouter Request Failed:', {
+        error: error.message,
+        stack: error.stack,
+        cause: error.cause
+      });
+      throw error; // Preserve the original error
     }
   } else {
     return new Promise((resolve) => {

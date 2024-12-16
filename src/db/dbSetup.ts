@@ -143,7 +143,7 @@ export async function initializeDB(): Promise<void> {
     const [modelConfigCount, toolCount, agentCount] = counts;
     console.log('Current counts:', { modelConfigCount, toolCount, agentCount });
 
-    // Initialize in order: models -> tools -> agents
+    // Only initialize if stores are empty
     if (modelConfigCount === 0) {
       console.log('Initializing model configurations...');
       await modelDb.initializeProviders();
@@ -163,7 +163,7 @@ export async function initializeDB(): Promise<void> {
           ...agent,
           capabilities: {
             ...agent.capabilities,
-            canUseMemory: true // Add the missing capability
+            canUseMemory: true
           }
         });
       }

@@ -48,5 +48,21 @@ export const initialTools: Tool[] = [
       description: 'Programming language',
       required: true
     }]
+  },
+  {
+    id: 'text-generation',
+    name: 'text-generation',
+    description: 'Generate text using language models',
+    parameters: [{
+      name: 'prompt',
+      type: 'string',
+      description: 'Input prompt for text generation',
+      required: true
+    }, {
+      name: 'maxTokens',
+      type: 'number',
+      description: 'Maximum tokens to generate',
+      required: false
+    }]
   }
 ];

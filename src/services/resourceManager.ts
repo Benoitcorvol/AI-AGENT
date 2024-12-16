@@ -41,12 +41,26 @@ export class ResourceManager {
   }
 
   private findSuitableAgent(agents: Agent[], subtask: SubTask): Agent | null {
-    // Implement agent selection logic based on capabilities and task requirements
-    return null;
+    const requiredCapabilities = subtask.metadata.requiredCapabilities as string[];
+    
+    return agents.find(agent => 
+      agent.role === 'worker' && // Only consider worker agents
+      requiredCapabilities.every(capability => 
+        // Check if agent has necessary tools/capabilities
+        agent.tools.some(tool => 
+          tool.description.toLowerCase().includes(capability.toLowerCase())
+        )
+      )
+    ) || null;
   }
 
   private identifyRequiredTools(agent: Agent, subtask: SubTask): Tool[] {
-    // Identify tools needed for the subtask
-    return [];
+    const requiredCapabilities = subtask.metadata.requiredCapabilities as string[];
+    
+    return agent.tools.filter(tool =>
+      requiredCapabilities.some(capability =>
+        tool.description.toLowerCase().includes(capability.toLowerCase())
+      )
+    );
   }
 }

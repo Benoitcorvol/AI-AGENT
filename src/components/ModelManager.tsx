@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { modelDb } from '../db/modelDb';
+import { modelDb, StoredModelConfig } from '../db/modelDb';
+import { modelProviders } from '../config/modelProviders';
 import { Loader2 } from 'lucide-react';
 
 interface Props {
@@ -7,9 +8,10 @@ interface Props {
 }
 
 export function ModelManager({ onModelConfigured }: Props) {
-  const [provider, setProvider] = useState('openai');
+  const [provider, setProvider] = useState(modelProviders[0]?.name || '');
   const [apiKey, setApiKey] = useState('');
   const [baseUrl, setBaseUrl] = useState('');
+  const [modelConfig, setModelConfig] = useState<StoredModelConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,13 +24,24 @@ export function ModelManager({ onModelConfigured }: Props) {
   const loadConfig = async () => {
     try {
       setIsLoading(true);
+      setError(null);
+      
+      // Initialize providers if needed
+      const configs = await modelDb.getAllModelConfigs();
+      if (configs.length === 0) {
+        await modelDb.initializeProviders();
+      }
+      
+      // Load selected provider config
       const config = await modelDb.getModelConfig(provider);
       if (config) {
         setApiKey(config.apiKey);
         setBaseUrl(config.baseUrl || '');
+        setModelConfig(config);
       } else {
         setApiKey('');
         setBaseUrl('');
+        setModelConfig(null);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load model configuration');
@@ -47,11 +60,17 @@ export function ModelManager({ onModelConfigured }: Props) {
       await modelDb.saveModelConfig(provider, apiKey, baseUrl || undefined);
       setSuccessMessage('Configuration saved successfully');
       onModelConfigured();
+      await loadConfig(); // Reload to get updated model list
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save model configuration');
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const getProviderWebsite = (providerName: string) => {
+    const provider = modelProviders.find(p => p.name === providerName);
+    return provider?.website;
   };
 
   if (isLoading) {
@@ -92,10 +111,23 @@ export function ModelManager({ onModelConfigured }: Props) {
             }}
             className="w-full px-3 py-2 text-base sm:text-sm border rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-[#128C7E] transition-shadow"
           >
-            <option value="openai">OpenAI</option>
-            <option value="anthropic">Anthropic</option>
-            <option value="openrouter">OpenRouter</option>
+            {modelProviders.map(p => (
+              <option key={p.name} value={p.name}>{p.name}</option>
+            ))}
           </select>
+          {getProviderWebsite(provider) && (
+            <p className="mt-1 text-sm text-gray-500">
+              Get your API key at{' '}
+              <a 
+                href={getProviderWebsite(provider)}
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-[#128C7E] hover:underline"
+              >
+                {getProviderWebsite(provider)}
+              </a>
+            </p>
+          )}
         </div>
 
         <div>
@@ -116,23 +148,41 @@ export function ModelManager({ onModelConfigured }: Props) {
           />
         </div>
 
-        <div>
-          <label htmlFor="baseUrl" className="block text-sm font-medium text-gray-700 mb-1">
-            Base URL (Optional)
-          </label>
-          <input
-            id="baseUrl"
-            type="text"
-            value={baseUrl}
-            onChange={(e) => {
-              setBaseUrl(e.target.value);
-              setError(null);
-              setSuccessMessage(null);
-            }}
-            className="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#128C7E] transition-shadow"
-            placeholder="Custom base URL (if needed)"
-          />
-        </div>
+        {modelProviders.find(p => p.name === provider)?.requiresBaseUrl && (
+          <div>
+            <label htmlFor="baseUrl" className="block text-sm font-medium text-gray-700 mb-1">
+              Base URL {!modelProviders.find(p => p.name === provider)?.requiresBaseUrl && '(Optional)'}
+            </label>
+            <input
+              id="baseUrl"
+              type="text"
+              value={baseUrl}
+              onChange={(e) => {
+                setBaseUrl(e.target.value);
+                setError(null);
+                setSuccessMessage(null);
+              }}
+              className="w-full px-3 py-2 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-[#128C7E] transition-shadow"
+              placeholder="Custom base URL (if needed)"
+            />
+          </div>
+        )}
+
+        {modelConfig && modelConfig.models.length > 0 && (
+          <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Available Models</h3>
+            <div className="bg-gray-50 rounded-lg p-3 space-y-2">
+              {modelConfig.models.map(model => (
+                <div key={model.id} className="text-sm">
+                  <span className="font-medium">{model.name}</span>
+                  <span className="text-gray-500 ml-2">
+                    ({model.capabilities.join(', ')})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg">

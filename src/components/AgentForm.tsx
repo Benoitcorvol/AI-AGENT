@@ -1,12 +1,12 @@
 import React from 'react';
-import { X } from 'lucide-react';
+import { X, Brain } from 'lucide-react';
 import { Agent, ModelType, AgentRole, Tool } from '../types/agent';
 import { roleCapabilities, roleDescriptions } from '../utils/agentRoles';
 import { ToolSelector } from './ToolSelector';
 import { toolDb } from '../db/database';
-import { modelProviders } from '../config/modelProviders';
 import { modelDb } from '../db/modelDb';
 import { ModelConfig } from '../types/models';
+import { MemoryBrowser } from './MemoryBrowser';
 
 interface AgentFormProps {
   onSubmit: (agent: Partial<Agent>) => void;
@@ -20,6 +20,7 @@ const ROLE_OPTIONS: AgentRole[] = ['worker', 'coordinator', 'manager'];
 export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: AgentFormProps) {
   const [availableTools, setAvailableTools] = React.useState<Tool[]>([]);
   const [configuredModels, setConfiguredModels] = React.useState<ModelConfig[]>([]);
+  const [showMemoryBrowser, setShowMemoryBrowser] = React.useState(false);
   
   React.useEffect(() => {
     const loadTools = async () => {
@@ -36,14 +37,12 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
   React.useEffect(() => {
     const loadConfiguredModels = async () => {
       const models: ModelConfig[] = [];
-      for (const provider of modelProviders) {
-        try {
-          const config = await modelDb.getModelConfig(provider.name.toLowerCase());
-          if (config?.apiKey) {
-            models.push(...provider.models);
-          }
-        } catch (error) {
-          console.error(`Failed to load models for ${provider.name}:`, error);
+      const configs = await modelDb.getAllModelConfigs();
+      
+      for (const config of configs) {
+        if (config.apiKey) {
+          // Only add models from providers that have an API key configured
+          models.push(...config.models);
         }
       }
       setConfiguredModels(models);
@@ -90,7 +89,7 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
     });
   };
 
-  // Group models by provider
+  // Group models by provider and ensure unique keys
   const modelsByProvider = configuredModels.reduce((acc, model) => {
     const provider = model.provider;
     if (!acc[provider]) {
@@ -151,10 +150,10 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
                 required
               >
-                {Object.entries(modelsByProvider).map(([provider, models]) => (
-                  <optgroup key={provider} label={provider.charAt(0).toUpperCase() + provider.slice(1)}>
+                {Object.entries(modelsByProvider).map(([provider, models], index) => (
+                  <optgroup key={`${provider}-${index}`} label={provider.charAt(0).toUpperCase() + provider.slice(1)}>
                     {models.map((model) => (
-                      <option key={model.id} value={model.id}>
+                      <option key={`${model.id}-${index}`} value={model.id}>
                         {model.name}
                       </option>
                     ))}
@@ -282,6 +281,19 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
                 />
               </div>
             </div>
+
+            {initialData && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowMemoryBrowser(true)}
+                  className="flex items-center gap-2 px-4 py-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                >
+                  <Brain className="w-5 h-5" />
+                  Manage Agent Memory
+                </button>
+              </div>
+            )}
           </form>
         </div>
         <div className="sticky bottom-0 bg-white border-t border-gray-100 px-6 py-4 flex justify-end gap-3">
@@ -301,6 +313,26 @@ export function AgentForm({ onSubmit, onClose, initialData, availableAgents }: A
           </button>
         </div>
       </div>
+
+      {/* Memory Browser Modal */}
+      {showMemoryBrowser && initialData && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-[60]">
+          <div className="bg-white rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h3 className="text-lg font-medium text-gray-900">Agent Memory</h3>
+              <button
+                onClick={() => setShowMemoryBrowser(false)}
+                className="text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded-full p-1"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-hidden">
+              <MemoryBrowser agentId={initialData.id} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

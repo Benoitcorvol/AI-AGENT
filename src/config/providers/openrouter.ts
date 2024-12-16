@@ -1,7 +1,7 @@
 import { ProviderConfig } from '../../types/models';
 
 export const openrouterProvider: ProviderConfig = {
-  name: 'OpenRouter',
+  name: 'openrouter',
   requiresApiKey: true,
   requiresBaseUrl: false,
   defaultBaseUrl: 'https://openrouter.ai/api/v1',
